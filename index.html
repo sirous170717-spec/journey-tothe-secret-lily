@@ -2,162 +2,169 @@
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Journey to the Secret Lily</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <div id="app">
 
-  <!-- پس‌زمینه ستاره‌ای -->
-  <div class="stars-layer stars-back"></div>
-  <div class="stars-layer stars-mid"></div>
-  <div class="stars-layer stars-front"></div>
-
-  <!-- صفحه شروع -->
-  <section id="startScreen" class="screen start-screen active">
-    <div class="start-card">
-      <h1 class="game-title">Journey to the Secret Lily</h1>
-      <h2 class="game-subtitle">سفر رز تا لیلیوم پنهان</h2>
-
-      <p class="intro-text">
-        رز باید از میان ستاره‌های شب، پل شکسته و رازهای آسمان عبور کند
-        تا کلید ماه را پیدا کند و به دروازه‌ی بعدی برسد...
-      </p>
-
-      <div class="feature-list">
-        <span>✨ ستاره‌ها</span>
-        <span>🦉 لومی</span>
-        <span>🌙 رازآلود</span>
-        <span>🗝️ کلید ماه</span>
+    <!-- START SCREEN -->
+    <section id="startScreen" class="screen active">
+      <div class="start-bg">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+        <div class="stars-layer" id="menuStars"></div>
       </div>
 
-      <button id="startBtn" class="main-btn">شروع سفر</button>
-    </div>
-  </section>
-
-  <!-- مرحله ۱ -->
-  <section id="stage1" class="screen stage-screen">
-    <div class="stage-shell">
-
-      <!-- HUD -->
-      <div class="hud">
-        <div class="hud-left">
-          <div id="keyStatus" class="moon-key-status">🗝️ کلید ماه: پیدا نشده</div>
+      <div class="start-card">
+        <div class="title-wrap">
+          <h1>Journey to the Secret Lily</h1>
+          <h2>سفر رز تا لیلیوم پنهان</h2>
         </div>
 
-        <div class="hud-right">
-          <div class="stage-badge">مرحله ۱</div>
+        <p class="intro-text">
+          رز باید از مسیر ستاره‌ها، پل شکسته و رازهای شب عبور کند تا
+          به کلید ماه و دروازه‌ی بعدی برسد...
+        </p>
+
+        <div class="feature-pills">
+          <span>✨ ستاره‌ها</span>
+          <span>🦉 لومی</span>
+          <span>🌙 رازآلود</span>
+          <span>🗝️ کلید ماه</span>
         </div>
+
+        <button id="startBtn" class="main-btn">شروع سفر</button>
       </div>
+    </section>
 
-      <!-- عنوان مرحله -->
-      <div class="stage-title-box">
-        <h3>راه ستاره‌ها و پل شکسته</h3>
-        <p>رز باید از میان ستاره‌های شب عبور کند، لومی را دنبال کند و کلید ماه را پیدا کند تا دروازه‌ی ماه باز شود.</p>
-
-        <div class="progress-label">
-          <span>پیشروی رز</span>
-        </div>
-
-        <div class="progress-wrap">
-          <div id="progressBar" class="progress-bar"></div>
-        </div>
-      </div>
-
-      <!-- فضای بازی -->
-      <div id="gameArea" class="game-area">
-
-        <!-- ماه -->
+    <!-- GAME SCREEN -->
+    <section id="gameScreen" class="screen">
+      <div id="gameWorld">
+        <!-- sky -->
+        <div class="sky-glow glow-a"></div>
+        <div class="sky-glow glow-b"></div>
+        <div class="stars-layer" id="gameStars"></div>
         <div class="moon"></div>
 
-        <!-- هاله‌های فضا -->
-        <div class="mist mist-1"></div>
-        <div class="mist mist-2"></div>
-        <div class="mist mist-3"></div>
+        <!-- HUD -->
+        <div class="hud">
+          <div class="hud-left">
+            <div class="stage-badge">مرحله ۱</div>
+            <div class="stage-title">راه ستاره‌ها و پل شکسته</div>
+          </div>
 
-        <!-- ستاره‌های تزئینی -->
-        <div class="tiny-star t1"></div>
-        <div class="tiny-star t2"></div>
-        <div class="tiny-star t3"></div>
-        <div class="tiny-star t4"></div>
-        <div class="tiny-star t5"></div>
-        <div class="tiny-star t6"></div>
-        <div class="tiny-star t7"></div>
-        <div class="tiny-star t8"></div>
-        <div class="tiny-star t9"></div>
-        <div class="tiny-star t10"></div>
-
-        <!-- لومی -->
-        <div id="owl" class="owl" aria-hidden="true">
-          <div class="owl-ear left"></div>
-          <div class="owl-ear right"></div>
-          <div class="owl-body"></div>
-          <div class="owl-eye left"></div>
-          <div class="owl-eye right"></div>
-          <div class="owl-beak"></div>
-          <div class="owl-wing left"></div>
-          <div class="owl-wing right"></div>
-        </div>
-
-        <!-- ستاره‌های قابل جمع -->
-        <div class="star collectible" data-type="star" style="top: 24%; left: 13%;"></div>
-        <div class="star collectible" data-type="star" style="top: 31%; left: 25%;"></div>
-        <div class="star collectible" data-type="star" style="top: 22%; left: 41%;"></div>
-        <div class="star collectible" data-type="star" style="top: 30%; left: 58%;"></div>
-        <div class="star collectible" data-type="star" style="top: 23%; left: 76%;"></div>
-
-        <!-- کلید ماه -->
-        <div id="moonKey" class="moon-key collectible" data-type="key" style="top: 48%; left: 80%;">
-          🗝️
-        </div>
-
-        <!-- دروازه ماه -->
-        <div id="moonGate" class="moon-gate">
-          <div class="gate-glow"></div>
-          <div class="gate-arch">
-            <div class="gate-moon">🌙</div>
-            <div class="gate-text">دروازه ماه</div>
-            <div id="gateState" class="gate-state">بسته</div>
+          <div class="hud-right">
+            <div class="moon-key-box" id="moonKeyBox">🗝️ کلید ماه: پیدا نشده</div>
           </div>
         </div>
 
-        <!-- پل شکسته -->
-        <div class="bridge bridge-left"></div>
-        <div class="bridge bridge-right"></div>
-
-        <!-- نورهای زمینی -->
-        <div class="ground-light gl1"></div>
-        <div class="ground-light gl2"></div>
-        <div class="ground-light gl3"></div>
-        <div class="ground-light gl4"></div>
-
-        <!-- رز -->
-        <div id="player" class="player" aria-label="Rose character">
-          <div class="player-head"></div>
-          <div class="player-hair"></div>
-          <div class="player-body"></div>
-          <div class="player-arm left"></div>
-          <div class="player-arm right"></div>
-          <div class="player-leg left"></div>
-          <div class="player-leg right"></div>
+        <!-- progress -->
+        <div class="progress-wrap">
+          <div class="progress-label">پیشروی رز</div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
         </div>
 
-      </div>
+        <!-- world -->
+        <div id="worldInner">
+          <!-- ground -->
+          <div class="ground"></div>
 
-      <!-- کنترل‌ها -->
-      <div class="controls-wrap">
-        <div class="controls">
-          <button id="leftBtn" class="control-btn" type="button">◀</button>
-          <button id="jumpBtn" class="control-btn" type="button">▲</button>
-          <button id="rightBtn" class="control-btn" type="button">▶</button>
+          <!-- hills -->
+          <div class="hill hill-1"></div>
+          <div class="hill hill-2"></div>
+          <div class="hill hill-3"></div>
+
+          <!-- plants -->
+          <div class="plant p1"></div>
+          <div class="plant p2"></div>
+          <div class="plant p3"></div>
+          <div class="plant p4"></div>
+          <div class="plant p5"></div>
+
+          <!-- owl -->
+          <div id="lumi" class="lumi">
+            <div class="lumi-body"></div>
+            <div class="lumi-eye left"></div>
+            <div class="lumi-eye right"></div>
+            <div class="lumi-wing left"></div>
+            <div class="lumi-wing right"></div>
+          </div>
+
+          <!-- star points -->
+          <div class="star-point s1"></div>
+          <div class="star-point s2"></div>
+          <div class="star-point s3"></div>
+          <div class="star-point s4"></div>
+
+          <!-- ROSE -->
+          <div id="rose" class="rose">
+            <div class="rose-shadow"></div>
+            <div class="rose-body">
+              <div class="rose-head"></div>
+              <div class="rose-hair"></div>
+              <div class="rose-torso"></div>
+              <div class="rose-arm left"></div>
+              <div class="rose-arm right"></div>
+              <div class="rose-leg left"></div>
+              <div class="rose-leg right"></div>
+            </div>
+          </div>
+
+          <!-- BRIDGE -->
+          <div id="bridgeSection" class="bridge-section">
+            <div class="bridge-label">پل شکسته</div>
+            <div class="bridge-gap"></div>
+
+            <div class="bridge-part part-1"></div>
+            <div class="bridge-part part-2 broken"></div>
+            <div class="bridge-part part-3"></div>
+          </div>
+
+          <!-- KEY -->
+          <div id="moonKey" class="moon-key floating">🗝️</div>
+
+          <!-- GATE -->
+          <div id="moonGate" class="moon-gate">
+            <div class="gate-arch"></div>
+            <div class="gate-core">
+              <div class="gate-moon">🌙</div>
+              <div class="gate-text">دروازه ماه</div>
+            </div>
+          </div>
+
+          <!-- MESSAGE -->
+          <div id="messageBox" class="message-box hidden"></div>
+
+          <!-- CINEMATIC -->
+          <div id="cinematicOverlay" class="cinematic-overlay hidden">
+            <div class="cinematic-card">
+              <div class="cinematic-title">کلید ماه پیدا شد ✨</div>
+              <p>رز از راه ستاره‌ها و پل شکسته عبور کرد. دروازه‌ی ماه حالا بیدار شده...</p>
+              <button id="continueBtn" class="main-btn small">ادامه</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- controls -->
+        <div class="controls" id="controls">
+          <button class="ctrl-btn" id="leftBtn">◀</button>
+          <button class="ctrl-btn jump" id="jumpBtn">⬆</button>
+          <button class="ctrl-btn" id="rightBtn">▶</button>
         </div>
       </div>
+    </section>
 
-      <!-- پیام مرحله -->
-      <div id="messageBox" class="message-box hidden"></div>
-
-    </div>
-  </section>
+  </div>
 
   <script src="main.js"></script>
 </body>
