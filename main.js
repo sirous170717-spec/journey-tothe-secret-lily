@@ -1,708 +1,388 @@
-// ======================================================
-// Journey to the Secret Lily - Build 1 Main Stage
-// Stage 1: Star Path / Broken Bridge / Moon Key / Lumi
-// Pure Canvas + JS (no external library)
-// ======================================================
+document.addEventListener("DOMContentLoaded", () => {
+  // screens
+  const startScreen = document.getElementById("startScreen");
+  const gameScreen = document.getElementById("gameScreen");
 
-(() => {
-  // -----------------------------
-  // DOM
-  // -----------------------------
-  const canvas = document.getElementById("gameCanvas");
-  const ctx = canvas.getContext("2d");
-
-  const menuScreen = document.getElementById("menuScreen");
-  const stageCompleteScreen = document.getElementById("stageCompleteScreen");
+  // buttons
   const startBtn = document.getElementById("startBtn");
-  const restartBtn = document.getElementById("restartBtn");
+  const continueBtn = document.getElementById("continueBtn");
+  const leftBtn = document.getElementById("leftBtn");
+  const rightBtn = document.getElementById("rightBtn");
+  const jumpBtn = document.getElementById("jumpBtn");
 
-  const hud = document.getElementById("hud");
-  const starCountEl = document.getElementById("starCount");
-  const starTotalEl = document.getElementById("starTotal");
-  const hasKeyEl = document.getElementById("hasKey");
+  // world objects
+  const rose = document.getElementById("rose");
+  const lumi = document.getElementById("lumi");
+  const moonKey = document.getElementById("moonKey");
+  const moonGate = document.getElementById("moonGate");
+  const bridgeSection = document.getElementById("bridgeSection");
 
-  const dialogueBox = document.getElementById("dialogueBox");
-  const dialogueText = document.getElementById("dialogueText");
-  const centerMessage = document.getElementById("centerMessage");
+  // ui
+  const messageBox = document.getElementById("messageBox");
+  const cinematicOverlay = document.getElementById("cinematicOverlay");
+  const moonKeyBox = document.getElementById("moonKeyBox");
+  const progressFill = document.getElementById("progressFill");
+  const gameWorld = document.getElementById("gameWorld");
+  const worldInner = document.getElementById("worldInner");
 
-  const mobileControls = document.getElementById("mobileControls");
-  const btnLeft = document.getElementById("btnLeft");
-  const btnRight = document.getElementById("btnRight");
-  const btnJump = document.getElementById("btnJump");
-  const btnAction = document.getElementById("btnAction");
+  const menuStars = document.getElementById("menuStars");
+  const gameStars = document.getElementById("gameStars");
 
-  // -----------------------------
-  // Canvas / DPR
-  // -----------------------------
-  let DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-  function resizeCanvas() {
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    canvas.width = Math.floor(w * DPR);
-    canvas.height = Math.floor(h * DPR);
-    canvas.style.width = w + "px";
-    canvas.style.height = h + "px";
-    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-    if (game) {
-      game.width = w;
-      game.height = h;
-      game.groundY = h - 130;
-    }
-  }
-  window.addEventListener("resize", resizeCanvas);
-  resizeCanvas();
-
-  // -----------------------------
-  // Utilities
-  // -----------------------------
-  const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-  const lerp = (a, b, t) => a + (b - a) * t;
-  const rand = (a, b) => Math.random() * (b - a) + a;
-  const dist = (x1, y1, x2, y2) => Math.hypot(x2 - x1, y2 - y1);
-
-  function rectsIntersect(a, b) {
-    return (
-      a.x < b.x + b.w &&
-      a.x + a.w > b.x &&
-      a.y < b.y + b.h &&
-      a.y + a.h > b.y
-    );
+  // fail-safe
+  if (!startBtn || !startScreen || !gameScreen || !rose) {
+    console.error("Game init failed: required elements not found.");
+    return;
   }
 
-  function roundedRect(ctx, x, y, w, h, r, fill, stroke) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
-    if (fill) {
-      ctx.fillStyle = fill;
-      ctx.fill();
-    }
-    if (stroke) {
-      ctx.strokeStyle = stroke;
-      ctx.stroke();
+  // ======= STAR GENERATOR =======
+  function createStars(container, count) {
+    if (!container) return;
+    container.innerHTML = "";
+    for (let i = 0; i < count; i++) {
+      const star = document.createElement("span");
+      star.className = "star" + (Math.random() > 0.82 ? " big" : "");
+      star.style.left = Math.random() * 100 + "%";
+      star.style.top = Math.random() * 100 + "%";
+      star.style.animationDelay = (Math.random() * 2.5).toFixed(2) + "s";
+      star.style.opacity = (0.25 + Math.random() * 0.75).toFixed(2);
+      container.appendChild(star);
     }
   }
 
-  function drawGlowCircle(x, y, r, color, alpha = 1) {
-    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-    g.addColorStop(0, color.replace("ALPHA", alpha.toFixed(2)));
-    g.addColorStop(1, color.replace("ALPHA", "0"));
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  createStars(menuStars, 55);
+  createStars(gameStars, 80);
 
-  function showMessage(text, duration = 2200) {
-    centerMessage.textContent = text;
-    centerMessage.classList.remove("hidden");
-    clearTimeout(showMessage._t);
-    showMessage._t = setTimeout(() => {
-      centerMessage.classList.add("hidden");
-    }, duration);
-  }
-
-  function showDialogue(text, duration = 2600) {
-    dialogueText.textContent = text;
-    dialogueBox.classList.remove("hidden");
-    clearTimeout(showDialogue._t);
-    showDialogue._t = setTimeout(() => {
-      dialogueBox.classList.add("hidden");
-    }, duration);
-  }
-
-  function hideDialogue() {
-    dialogueBox.classList.add("hidden");
-  }
-
-  // -----------------------------
-  // Input
-  // -----------------------------
-  const keys = {
-    left: false,
-    right: false,
-    up: false,
-    action: false
+  // ======= GAME STATE =======
+  const state = {
+    gameStarted: false,
+    roseX: 40,
+    roseY: 142,
+    moveDir: 0, // -1 left, 1 right
+    speed: 4.5,
+    isJumping: false,
+    hasMoonKey: false,
+    bridgePassed: false,
+    keyCollected: false,
+    gateReached: false,
+    introShown: false,
+    overlayOpen: false,
+    finishedStage: false,
   };
 
-  window.addEventListener("keydown", (e) => {
-    const k = e.key.toLowerCase();
-    if (["arrowleft", "a"].includes(k)) keys.left = true;
-    if (["arrowright", "d"].includes(k)) keys.right = true;
-    if (["arrowup", "w", " "].includes(k)) keys.up = true;
-    if (["e", "enter"].includes(k)) keys.action = true;
-  });
-
-  window.addEventListener("keyup", (e) => {
-    const k = e.key.toLowerCase();
-    if (["arrowleft", "a"].includes(k)) keys.left = false;
-    if (["arrowright", "d"].includes(k)) keys.right = false;
-    if (["arrowup", "w", " "].includes(k)) keys.up = false;
-    if (["e", "enter"].includes(k)) keys.action = false;
-  });
-
-  function bindHold(btn, onDown, onUp) {
-    const start = (e) => {
-      e.preventDefault();
-      onDown();
-    };
-    const end = (e) => {
-      e.preventDefault();
-      onUp();
-    };
-    btn.addEventListener("touchstart", start, { passive: false });
-    btn.addEventListener("touchend", end, { passive: false });
-    btn.addEventListener("touchcancel", end, { passive: false });
-    btn.addEventListener("mousedown", start);
-    btn.addEventListener("mouseup", end);
-    btn.addEventListener("mouseleave", end);
+  // ======= WORLD LIMITS =======
+  function getWorldWidth() {
+    return window.innerWidth;
   }
 
-  bindHold(btnLeft, () => (keys.left = true), () => (keys.left = false));
-  bindHold(btnRight, () => (keys.right = true), () => (keys.right = false));
-  bindHold(btnJump, () => (keys.up = true), () => (keys.up = false));
-  bindHold(btnAction, () => (keys.action = true), () => (keys.action = false));
+  function getGroundY() {
+    return 142;
+  }
 
-  // -----------------------------
-  // Game State
-  // -----------------------------
-  let game = null;
-  let lastTime = 0;
-  let running = false;
+  function updateRosePosition() {
+    rose.style.left = `${state.roseX}px`;
+    rose.style.bottom = `${state.roseY}px`;
+  }
 
-  function createGame() {
-    const width = window.innerWidth;
-    const height = window.innerHeight;
+  function clampRose() {
+    const maxX = getWorldWidth() - 90;
+    if (state.roseX < 10) state.roseX = 10;
+    if (state.roseX > maxX) state.roseX = maxX;
+  }
 
-    const groundY = height - 130;
-    const worldWidth = 5200;
+  function setMessage(text, timeout = 2600) {
+    if (!messageBox) return;
+    messageBox.textContent = text;
+    messageBox.classList.remove("hidden");
 
-    // Ground platforms
-    const platforms = [
-      { x: 0, y: groundY, w: 1500, h: 200, type: "ground" },
+    clearTimeout(setMessage._timer);
+    setMessage._timer = setTimeout(() => {
+      messageBox.classList.add("hidden");
+    }, timeout);
+  }
 
-      // Broken bridge section - before gap
-      { x: 1500, y: groundY + 10, w: 280, h: 190, type: "bridge-left" },
+  function setProgress(value) {
+    const safe = Math.max(0, Math.min(100, value));
+    progressFill.style.width = safe + "%";
+  }
 
-      // gap from 1780 to 2040
+  function updateProgress() {
+    const maxX = getWorldWidth() - 90;
+    const percent = (state.roseX / maxX) * 100;
+    setProgress(percent);
+  }
 
-      // after gap
-      { x: 2040, y: groundY + 10, w: 520, h: 190, type: "bridge-right" },
+  function updateMoonKeyStatus() {
+    moonKeyBox.textContent = state.hasMoonKey
+      ? "🗝️ کلید ماه: پیدا شد"
+      : "🗝️ کلید ماه: پیدا نشده";
+  }
 
-      // more ground
-      { x: 2560, y: groundY, w: 2640, h: 200, type: "ground" },
-
-      // small floating decorative ledges
-      { x: 1100, y: groundY - 120, w: 130, h: 18, type: "ledge" },
-      { x: 2860, y: groundY - 110, w: 130, h: 18, type: "ledge" }
-    ];
-
-    const stars = [
-      { x: 920, y: groundY - 120, r: 18, collected: false, id: "star-1" },
-      { x: 2360, y: groundY - 150, r: 18, collected: false, id: "star-2" },
-      { x: 3650, y: groundY - 140, r: 18, collected: false, id: "star-3" }
-    ];
-
-    const moonKey = {
-      x: 4450,
-      y: groundY - 70,
-      w: 40,
-      h: 40,
-      collected: false
-    };
-
-    const exitGate = {
-      x: 4900,
-      y: groundY - 120,
-      w: 120,
-      h: 160,
-      active: false
-    };
-
-    const bridgeGap = { x1: 1780, x2: 2040 };
-
-    const owlPoints = [
-      { x: 260, y: groundY - 210, text: "رز... نور ستاره‌ها رو دنبال کن ✨" },
-      { x: 980, y: groundY - 210, text: "اولین ستاره نزدیکه. حسش کن..." },
-      { x: 1660, y: groundY - 230, text: "آروم‌تر... جلوتر پل شکسته‌ست 🦉" },
-      { x: 2360, y: groundY - 230, text: "خوبه... از خطر رد شدی." },
-      { x: 3650, y: groundY - 220, text: "رز... ماه به کلیدش نزدیکه 🌙" },
-      { x: 4470, y: groundY - 230, text: "کلید ماه اینجاست. برش دار." },
-      { x: 4920, y: groundY - 230, text: "دروازه باز شده... برو جلو." }
-    ];
-
-    const decorativeTrees = [];
-    for (let i = 0; i < 30; i++) {
-      const x = i * 190 + rand(-40, 60);
-      decorativeTrees.push({
-        x,
-        y: groundY,
-        h: rand(120, 260),
-        layer: Math.random() > 0.5 ? 1 : 2
-      });
+  function faceRose(dir) {
+    if (dir === -1) {
+      rose.style.transform = "scaleX(-1)";
+    } else if (dir === 1) {
+      rose.style.transform = "scaleX(1)";
     }
+  }
 
-    const floatingDust = [];
-    for (let i = 0; i < 120; i++) {
-      floatingDust.push({
-        x: rand(0, worldWidth),
-        y: rand(0, height * 0.9),
-        r: rand(1, 3),
-        s: rand(0.2, 0.8),
-        a: rand(0.25, 0.9)
-      });
+  // ======= GAME FLOW =======
+  function startGame() {
+    if (state.gameStarted) return;
+    state.gameStarted = true;
+
+    startScreen.classList.remove("active");
+    gameScreen.classList.add("active");
+
+    state.roseX = 40;
+    state.roseY = getGroundY();
+    updateRosePosition();
+    updateProgress();
+    updateMoonKeyStatus();
+
+    setTimeout(() => {
+      if (!state.introShown) {
+        state.introShown = true;
+        setMessage("لومی امشب راهنمای رز است... از ستاره‌ها رد شو و به کلید ماه برس ✨", 3600);
+      }
+    }, 450);
+
+    gameLoop();
+  }
+
+  startBtn.addEventListener("click", startGame);
+
+  // ======= CONTROLS =======
+  function startMove(dir) {
+    if (!state.gameStarted || state.overlayOpen || state.finishedStage) return;
+    state.moveDir = dir;
+    rose.classList.add("moving");
+    faceRose(dir);
+  }
+
+  function stopMove(dir) {
+    if (dir === undefined || state.moveDir === dir) {
+      state.moveDir = 0;
+      rose.classList.remove("moving");
     }
+  }
 
-    const player = {
-      x: 120,
-      y: groundY - 82,
-      w: 46,
-      h: 82,
-      vx: 0,
-      vy: 0,
-      speed: 360,
-      jumpPower: 760,
-      gravity: 1800,
-      onGround: false,
-      facing: 1,
-      moveTime: 0,
-      controlsEnabled: true,
-      autoMove: false,
-      targetX: 0,
-      alpha: 1
-    };
+  function jumpRose() {
+    if (!state.gameStarted || state.isJumping || state.overlayOpen || state.finishedStage) return;
+    state.isJumping = true;
+    rose.classList.add("jump");
 
-    const owl = {
-      x: 230,
-      y: groundY - 210,
-      bob: 0,
-      pointIndex: 0,
-      shown: new Set()
-    };
+    // jump soundless visual
+    state.roseY = getGroundY() + 70;
+    updateRosePosition();
 
+    setTimeout(() => {
+      state.roseY = getGroundY();
+      rose.classList.remove("jump");
+      updateRosePosition();
+      state.isJumping = false;
+    }, 520);
+  }
+
+  // touch / mouse buttons
+  if (leftBtn) {
+    leftBtn.addEventListener("touchstart", (e) => { e.preventDefault(); startMove(-1); }, { passive: false });
+    leftBtn.addEventListener("touchend", (e) => { e.preventDefault(); stopMove(-1); }, { passive: false });
+    leftBtn.addEventListener("mousedown", () => startMove(-1));
+    leftBtn.addEventListener("mouseup", () => stopMove(-1));
+    leftBtn.addEventListener("mouseleave", () => stopMove(-1));
+  }
+
+  if (rightBtn) {
+    rightBtn.addEventListener("touchstart", (e) => { e.preventDefault(); startMove(1); }, { passive: false });
+    rightBtn.addEventListener("touchend", (e) => { e.preventDefault(); stopMove(1); }, { passive: false });
+    rightBtn.addEventListener("mousedown", () => startMove(1));
+    rightBtn.addEventListener("mouseup", () => stopMove(1));
+    rightBtn.addEventListener("mouseleave", () => stopMove(1));
+  }
+
+  if (jumpBtn) {
+    jumpBtn.addEventListener("touchstart", (e) => { e.preventDefault(); jumpRose(); }, { passive: false });
+    jumpBtn.addEventListener("click", jumpRose);
+  }
+
+  // keyboard support too
+  document.addEventListener("keydown", (e) => {
+    if (!state.gameStarted || state.overlayOpen || state.finishedStage) return;
+    if (e.key === "ArrowRight") startMove(1);
+    if (e.key === "ArrowLeft") startMove(-1);
+    if (e.key === "ArrowUp" || e.key === " ") jumpRose();
+  });
+
+  document.addEventListener("keyup", (e) => {
+    if (e.key === "ArrowRight") stopMove(1);
+    if (e.key === "ArrowLeft") stopMove(-1);
+  });
+
+  // ======= COLLISION HELPERS =======
+  function getRoseCenterX() {
+    return state.roseX + 44;
+  }
+
+  function isNearElement(el, threshold = 50) {
+    if (!el) return false;
+    const rect = el.getBoundingClientRect();
+    const x = getRoseCenterX();
+    return x >= rect.left - threshold && x <= rect.right + threshold;
+  }
+
+  function getBridgeBounds() {
+    if (!bridgeSection) return null;
+    const rect = bridgeSection.getBoundingClientRect();
     return {
-      width,
-      height,
-      worldWidth,
-      groundY,
-      platforms,
-      stars,
-      moonKey,
-      exitGate,
-      bridgeGap,
-      player,
-      owl,
-      owlPoints,
-      decorativeTrees,
-      floatingDust,
-      cameraX: 0,
-      stage: "menu", // menu | playing | complete
-      stageStarted: false,
-      starCount: 0,
-      starTotal: stars.length,
-      hasMoonKey: false,
-      actionLatch: false,
-      stageCompleted: false,
-      endingCutsceneReady: false
+      left: rect.left,
+      right: rect.right,
+      width: rect.width
     };
   }
 
-  // -----------------------------
-  // Start / Reset
-  // -----------------------------
-  function startStage() {
-    game = createGame();
-    game.stage = "playing";
-    game.stageStarted = true;
-    game.stageCompleted = false;
+  function checkBridgeEvent() {
+    if (state.bridgePassed) return;
 
-    menuScreen.classList.add("hidden");
-    stageCompleteScreen.classList.add("hidden");
-    hud.classList.remove("hidden");
-    mobileControls.classList.remove("hidden");
-    mobileControls.classList.remove("hidden-controls");
+    const b = getBridgeBounds();
+    if (!b) return;
 
-    updateHUD();
+    const roseX = getRoseCenterX();
 
-    showDialogue("رز... امشب مسیرت با ستاره‌ها روشن می‌شه. من کنارتم.", 3200);
-    showMessage("با دکمه‌ها حرکت کن • ستاره‌ها را جمع کن • کلید ماه را پیدا کن", 2800);
+    // bridge zone reached
+    if (roseX > b.left && roseX < b.right) {
+      // broken middle zone
+      const gapStart = b.left + b.width * 0.38;
+      const gapEnd = b.left + b.width * 0.53;
 
-    if (!running) {
-      running = true;
-      lastTime = performance.now();
-      requestAnimationFrame(loop);
-    }
-  }
+      if (roseX >= gapStart && roseX <= gapEnd) {
+        if (!state.isJumping) {
+          // fail effect but not hard fail
+          worldInner.classList.add("shake");
+          setTimeout(() => worldInner.classList.remove("shake"), 350);
 
-  function backToMenu() {
-    if (!game) return;
-    game.stage = "menu";
-    menuScreen.classList.remove("hidden");
-    stageCompleteScreen.classList.add("hidden");
-    hud.classList.add("hidden");
-    mobileControls.classList.add("hidden");
-  }
+          setMessage("پل شکسته است! باید با پرش از قسمت خراب رد شوی ⚠️", 2000);
 
-  startBtn.addEventListener("click", startStage);
-  restartBtn.addEventListener("click", startStage);
-
-  // -----------------------------
-  // HUD
-  // -----------------------------
-  function updateHUD() {
-    if (!game) return;
-    starCountEl.textContent = String(game.starCount);
-    starTotalEl.textContent = String(game.starTotal);
-    hasKeyEl.textContent = game.hasMoonKey ? "دارد" : "ندارد";
-  }
-
-  // -----------------------------
-  // Physics
-  // -----------------------------
-  function updatePlayer(dt) {
-    const p = game.player;
-    if (!p.controlsEnabled && !p.autoMove) return;
-
-    if (p.autoMove) {
-      // future cutscene structure
-      const dir = Math.sign(p.targetX - p.x);
-      p.vx = dir * 120;
-      if (Math.abs(p.targetX - p.x) < 6) {
-        p.vx = 0;
-        p.autoMove = false;
-      }
-    } else if (p.controlsEnabled) {
-      let move = 0;
-      if (keys.left) move -= 1;
-      if (keys.right) move += 1;
-
-      p.vx = move * p.speed;
-      if (move !== 0) {
-        p.facing = move > 0 ? 1 : -1;
-        p.moveTime += dt;
-      } else {
-        p.moveTime = 0;
-      }
-
-      if (keys.up && p.onGround) {
-        p.vy = -p.jumpPower;
-        p.onGround = false;
-      }
-    }
-
-    p.vy += p.gravity * dt;
-    p.x += p.vx * dt;
-    p.y += p.vy * dt;
-
-    p.onGround = false;
-
-    // world bounds
-    p.x = clamp(p.x, 0, game.worldWidth - p.w);
-
-    // platform collisions
-    const prevBottom = p.y + p.h - p.vy * dt;
-    for (const plat of game.platforms) {
-      const pr = { x: p.x, y: p.y, w: p.w, h: p.h };
-      const rr = { x: plat.x, y: plat.y, w: plat.w, h: plat.h };
-
-      if (rectsIntersect(pr, rr)) {
-        // land from above
-        if (prevBottom <= plat.y + 10 && p.vy >= 0) {
-          p.y = plat.y - p.h;
-          p.vy = 0;
-          p.onGround = true;
+          // push back a bit
+          state.roseX -= 24;
+          clampRose();
+          updateRosePosition();
+        } else {
+          state.bridgePassed = true;
+          setMessage("آفرین... رز از پل شکسته عبور کرد 🌙", 2200);
         }
       }
     }
+  }
 
-    // fall reset if player falls in broken bridge gap
-    if (p.y > game.height + 220) {
-      respawnAfterFall();
+  function checkLumiHints() {
+    const x = getRoseCenterX();
+
+    if (x > 130 && x < 180) {
+      lumi.style.transform = "translateY(-10px) scale(1.05)";
+    } else {
+      lumi.style.transform = "";
+    }
+
+    if (x > window.innerWidth * 0.28 && x < window.innerWidth * 0.34) {
+      setMessageOnce("hint-stars", "لومی: رد ستاره‌ها را دنبال کن... کلید ماه نزدیک‌تر از چیزی‌ست که فکر می‌کنی ✨", 3000);
+    }
+
+    if (x > window.innerWidth * 0.52 && x < window.innerWidth * 0.60 && !state.bridgePassed) {
+      setMessageOnce("hint-bridge", "لومی: از قسمت شکسته‌ی پل باید بپری، وگرنه رز رد نمی‌شود 🦉", 3000);
     }
   }
 
-  function respawnAfterFall() {
-    const p = game.player;
-    // respawn after bridge, if second star not collected keep before bridge checkpoint
-    let checkpointX = 1300;
-    if (game.starCount >= 2) checkpointX = 2220;
-
-    p.x = checkpointX;
-    p.y = game.groundY - p.h;
-    p.vx = 0;
-    p.vy = 0;
-    p.onGround = true;
-
-    showMessage("رز افتاد... ولی سفر هنوز تموم نشده 💫", 2200);
-    showDialogue("آروم‌تر... بعضی مسیرها با عجله رد نمی‌شن.", 2600);
+  const shownMessages = {};
+  function setMessageOnce(key, text, timeout = 2400) {
+    if (shownMessages[key]) return;
+    shownMessages[key] = true;
+    setMessage(text, timeout);
   }
 
-  // -----------------------------
-  // Stage logic
-  // -----------------------------
-  function updateStageLogic(dt) {
-    const p = game.player;
+  function checkMoonKeyPickup() {
+    if (state.keyCollected || !moonKey) return;
 
-    // camera
-    const targetCam = clamp(p.x - game.width * 0.35, 0, game.worldWidth - game.width);
-    game.cameraX = lerp(game.cameraX, targetCam, 0.08);
+    const rect = moonKey.getBoundingClientRect();
+    const x = getRoseCenterX();
+    const roseBottom = window.innerHeight - state.roseY;
 
-    // owl movement between points
-    updateOwl(dt);
+    // نزدیک بودن افقی + رز در حال پرش باشد
+    const nearX = x > rect.left - 35 && x < rect.right + 35;
+    const highEnough = state.isJumping || state.roseY > getGroundY() + 20;
 
-    // collect stars
-    for (const star of game.stars) {
-      if (star.collected) continue;
-      if (dist(p.x + p.w / 2, p.y + p.h / 2, star.x, star.y) < 52) {
-        star.collected = true;
-        game.starCount++;
-        updateHUD();
-        showMessage("یک ستاره پیدا شد ✨", 1400);
+    if (nearX && highEnough) {
+      state.keyCollected = true;
+      state.hasMoonKey = true;
+      moonKey.classList.add("fade-out");
+      updateMoonKeyStatus();
 
-        if (game.starCount === 1) {
-          showDialogue("خوبه... نورها دارن راه رو بهت نشون می‌دن.", 2400);
-        } else if (game.starCount === 2) {
-          showDialogue("فقط یکی دیگه مونده، رز 🌙", 2400);
-        } else if (game.starCount === 3) {
-          showDialogue("همه‌ی ستاره‌ها جمع شدن. حالا دنبال کلید ماه برو.", 3000);
+      gameWorld.classList.add("flash");
+      setTimeout(() => gameWorld.classList.remove("flash"), 400);
+
+      setMessage("کلید ماه پیدا شد! حالا به دروازه‌ی ماه برگرد ✨🗝️", 3000);
+    }
+  }
+
+  function checkGateReach() {
+    if (!state.hasMoonKey || state.finishedStage || !moonGate) return;
+
+    if (isNearElement(moonGate, 55)) {
+      state.finishedStage = true;
+      state.overlayOpen = true;
+      cinematicOverlay.classList.remove("hidden");
+      setProgress(100);
+      setMessage("دروازه بیدار شد...", 1200);
+      rose.classList.remove("moving");
+      state.moveDir = 0;
+    }
+  }
+
+  if (continueBtn) {
+    continueBtn.addEventListener("click", () => {
+      cinematicOverlay.classList.add("hidden");
+      state.overlayOpen = false;
+
+      setMessage("مرحله ۱ تمام شد 🌙✨\nمرحله‌ی بعدی: صندوق اسرار و سؤال‌ها", 3200);
+
+      // خاموش شدن دکمه‌ها و قفل پایان این مرحله
+      const controls = document.getElementById("controls");
+      if (controls) controls.classList.add("fade-out");
+    });
+  }
+
+  // ======= GAME LOOP =======
+  let loopStarted = false;
+  function gameLoop() {
+    if (loopStarted) return;
+    loopStarted = true;
+
+    function frame() {
+      if (state.gameStarted) {
+        if (!state.overlayOpen && !state.finishedStage) {
+          if (state.moveDir !== 0) {
+            state.roseX += state.moveDir * state.speed;
+            clampRose();
+            updateRosePosition();
+            updateProgress();
+          }
+
+          checkBridgeEvent();
+          checkLumiHints();
+          checkMoonKeyPickup();
+          checkGateReach();
         }
       }
+
+      requestAnimationFrame(frame);
     }
 
-    // collect moon key
-    if (!game.moonKey.collected) {
-      const keyRect = game.moonKey;
-      const playerRect = { x: p.x, y: p.y, w: p.w, h: p.h };
-      const keyHit = rectsIntersect(playerRect, keyRect);
-
-      if (keyHit) {
-        showMessage("برای برداشتن کلید: تعامل", 800);
-      }
-
-      if (keyHit && keys.action && !game.actionLatch) {
-        game.actionLatch = true;
-        game.moonKey.collected = true;
-        game.hasMoonKey = true;
-        game.exitGate.active = true;
-        updateHUD();
-        showDialogue("کلید ماه پیدا شد... دروازه بیدار شده.", 3000);
-        showMessage("🗝️ کلید ماه به دست آمد", 1800);
-      }
-    }
-
-    if (!keys.action) {
-      game.actionLatch = false;
-    }
-
-    // exit gate
-    if (game.exitGate.active) {
-      const gate = game.exitGate;
-      const nearGate =
-        p.x + p.w > gate.x &&
-        p.x < gate.x + gate.w &&
-        p.y + p.h > gate.y + 40;
-
-      if (nearGate) {
-        showMessage("برای عبور از دروازه: تعامل", 800);
-
-        if (keys.action && !game.actionLatch && !game.stageCompleted) {
-          game.actionLatch = true;
-          completeStage();
-        }
-      }
-    }
-
-    // if player reaches certain places, subtle excitement moments
-    if (p.x > 1450 && p.x < 1750 && !game._bridgeWarned) {
-      game._bridgeWarned = true;
-      showDialogue("جلوتر پل شکسته‌ست... با دقت رد شو.", 2600);
-    }
-
-    if (p.x > 2100 && !game._bridgePassed) {
-      game._bridgePassed = true;
-      showMessage("از پل شکسته رد شدی 🌉", 1500);
-    }
+    requestAnimationFrame(frame);
   }
 
-  function completeStage() {
-    game.stageCompleted = true;
-    game.player.controlsEnabled = false;
-    keys.left = keys.right = keys.up = keys.action = false;
-
-    showDialogue("این فقط شروع راهه... لیلیوم هنوز منتظرته.", 3200);
-    showMessage("مرحله ۱ کامل شد ✨", 1600);
-
-    setTimeout(() => {
-      hud.classList.add("hidden");
-      mobileControls.classList.add("hidden-controls");
-    }, 400);
-
-    setTimeout(() => {
-      stageCompleteScreen.classList.remove("hidden");
-      mobileControls.classList.add("hidden");
-      game.stage = "complete";
-    }, 1800);
-  }
-
-  // -----------------------------
-  // Owl (Lumi)
-  // -----------------------------
-  function updateOwl(dt) {
-    const owl = game.owl;
-    const points = game.owlPoints;
-    const p = game.player;
-
-    // choose point based on player x
-    let idx = 0;
-    for (let i = 0; i < points.length; i++) {
-      if (p.x >= points[i].x - 80) idx = i;
-    }
-    owl.pointIndex = idx;
-
-    const target = points[idx];
-    owl.x = lerp(owl.x, target.x, 0.05);
-    owl.bob += dt * 3.5;
-    owl.y = target.y + Math.sin(owl.bob) * 10;
-
-    // trigger dialogue once per point
-    if (!owl.shown.has(idx) && Math.abs(p.x - target.x) < 120) {
-      owl.shown.add(idx);
-      showDialogue(target.text, 2600);
-    }
-  }
-
-  // -----------------------------
-  // Future final cutscene structure
-  // -----------------------------
-  // این تابع فعلاً در Build 1 اجرا نمی‌شود، ولی برای پایان اصلی بازی از همین ساختار استفاده می‌کنیم
-  function startFinalCutscene() {
-    if (!game) return;
-    const p = game.player;
-    p.controlsEnabled = false;
-
-    // hide controls
-    mobileControls.classList.add("hidden-controls");
-
-    // auto move example
-    p.autoMove = true;
-    p.targetX = p.x + 240;
-
-    // در نسخه‌ی نهایی:
-    // 1) رز خودش تا نیمکت می‌رود
-    // 2) پسر بلند می‌شود
-    // 3) گل لیلیوم می‌دهد
-    // 4) بغل
-    // 5) نشستن کنار هم
-    // 6) سر روی شانه
-    // 7) دوربین عقب می‌رود
-  }
-
-  // -----------------------------
-  // Drawing
-  // -----------------------------
-  function drawBackground() {
-    const w = game.width;
-    const h = game.height;
-
-    // sky gradient
-    const sky = ctx.createLinearGradient(0, 0, 0, h);
-    sky.addColorStop(0, "#17122d");
-    sky.addColorStop(0.5, "#120f24");
-    sky.addColorStop(1, "#0c0a18");
-    ctx.fillStyle = sky;
-    ctx.fillRect(0, 0, w, h);
-
-    // moon glow
-    drawGlowCircle(w * 0.78, h * 0.18, 180, "rgba(255,235,190,ALPHA)", 0.14);
-    drawGlowCircle(w * 0.78, h * 0.18, 70, "rgba(255,245,220,ALPHA)", 0.22);
-
-    // moon
-    ctx.save();
-    ctx.globalAlpha = 0.95;
-    ctx.fillStyle = "#f6e7c0";
-    ctx.beginPath();
-    ctx.arc(w * 0.78, h * 0.18, 34, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-
-    // parallax nebula
-    drawNebula(120 - game.cameraX * 0.08, 120, 260, "rgba(96,72,170,0.14)");
-    drawNebula(w - 220 - game.cameraX * 0.05, 160, 280, "rgba(120,70,110,0.12)");
-    drawNebula(420 - game.cameraX * 0.03, h - 120, 240, "rgba(90,70,150,0.09)");
-
-    // stars
-    drawSkyStars();
-
-    // far trees
-    drawTrees(1, 0.18, "rgba(35,27,61,0.8)");
-    drawTrees(2, 0.32, "rgba(22,18,40,0.95)");
-
-    // floating dust
-    drawFloatingDust();
-  }
-
-  function drawNebula(x, y, r, color) {
-    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-    g.addColorStop(0, color);
-    g.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  function drawSkyStars() {
-    const t = performance.now() * 0.001;
-    for (let i = 0; i < 90; i++) {
-      const x = ((i * 131) % (game.width + 400)) - (game.cameraX * 0.08 % (game.width + 400));
-      const y = (i * 71) % (game.height * 0.7);
-      const a = 0.35 + Math.sin(t * 2 + i) * 0.25;
-      ctx.fillStyle = `rgba(255,255,255,${0.3 + a * 0.5})`;
-      ctx.fillRect(x, y, i % 3 === 0 ? 2 : 1, i % 3 === 0 ? 2 : 1);
-    }
-  }
-
-  function drawTrees(layer, parallax, color) {
-    ctx.save();
-    ctx.fillStyle = color;
-
-    for (const tr of game.decorativeTrees) {
-      if (tr.layer !== layer) continue;
-      const x = tr.x - game.cameraX * parallax;
-      const baseY = tr.y;
-
-      // trunk
-      ctx.fillRect(x, baseY - tr.h, 12, tr.h);
-
-      // crown
-      ctx.beginPath();
-      ctx.moveTo(x - 38, baseY - tr.h + 28);
-      ctx.lineTo(x + 6, baseY - tr.h - 28);
-      ctx.lineTo(x + 50, baseY - tr.h + 28);
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.moveTo(x - 30, baseY - tr.h + 58);
-      ctx.lineTo(x + 6, baseY - tr.h + 8);
-      ctx.lineTo(x + 42, baseY - tr.h + 58);
-      ctx.closePath();
-      ctx.fill();
-    }
-
-    ctx.restore();
-  }
-
-  function drawFloatingDust() {
-    const t = performance.now() * 0.001;
-    for (const d of game.floatingDust) {
-      const x = d.x - game.cameraX * 0.18;
-      const y = d.y + Math.sin(t * d.s + d.x * 0.01) * 6;
-      ctx.fillStyle = `rgba(255,255,255,${d.a})`;
-      ctx.beginPath();
-      ctx.arc(x, y, d.r, 0, Math.PI * 2);
-      c
+  // ======= RESIZE =======
+  window.addEventListener("resize", () => {
+    clampRose();
+    updateRosePosition();
+    updateProgress();
+  });
+});
