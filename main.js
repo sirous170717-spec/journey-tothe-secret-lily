@@ -1,219 +1,230 @@
-const homeScreen = document.getElementById("homeScreen");
-const stage1Screen = document.getElementById("stage1Screen");
+// ======================
+// ستاره‌های پس‌زمینه
+// ======================
+const globalStars = document.getElementById("globalStars");
 
+for (let i = 0; i < 65; i++) {
+  const s = document.createElement("span");
+  s.className = "star";
+  s.style.left = Math.random() * 100 + "%";
+  s.style.top = Math.random() * 100 + "%";
+  s.style.animationDelay = (Math.random() * 2.5) + "s";
+  s.style.opacity = (0.35 + Math.random() * 0.7).toFixed(2);
+  const size = 2 + Math.random() * 4;
+  s.style.width = size + "px";
+  s.style.height = size + "px";
+  globalStars.appendChild(s);
+}
+
+// ======================
+// المان‌ها
+// ======================
+const intro = document.getElementById("intro");
+const stage1 = document.getElementById("stage1");
 const startBtn = document.getElementById("startBtn");
 
-const rose = document.getElementById("rose");
+const player = document.getElementById("player");
 const moonKey = document.getElementById("moonKey");
 const moonGate = document.getElementById("moonGate");
-const gateText = document.getElementById("gateText");
-const keyStatus = document.getElementById("keyStatus");
-const progressBar = document.getElementById("progressBar");
-const stageMessage = document.getElementById("stageMessage");
-const stageComplete = document.getElementById("stageComplete");
-const controls = document.getElementById("controls");
+const moonKeyStatus = document.getElementById("moonKeyStatus");
+const gateLockedText = document.getElementById("gateLockedText");
+const progressFill = document.getElementById("progressFill");
 
-const leftBtn = document.getElementById("leftBtn");
-const rightBtn = document.getElementById("rightBtn");
+const moveRightBtn = document.getElementById("moveRightBtn");
+const moveLeftBtn = document.getElementById("moveLeftBtn");
 const jumpBtn = document.getElementById("jumpBtn");
 
-let roseX = 48;            // از راست
-let isMoving = false;
-let hasKey = false;
+const gameArea = document.getElementById("gameArea");
+
+// ======================
+// وضعیت بازی
+// ======================
+let playerX = 70;
+let playerY = 0; // پرش
+let velocityY = 0;
 let isJumping = false;
-let stageFinished = false;
+let hasMoonKey = false;
 
-const RIGHT_LIMIT = 82;    // درصد تقریبی حرکت به سمت چپ صفحه
-const LEFT_LIMIT = 2;
+const groundY = 0;
+const moveStep = 18;
+const gravity = 1.1;
+const jumpPower = 17;
 
-function setRosePosition() {
-  rose.style.right = `${roseX}px`;
+// محدوده‌ها
+const minX = 20;
+const maxX = () => gameArea.clientWidth - 110;
+
+// محل کلید و دروازه
+function getKeyX() {
+  // کلید در سمت راست
+  return gameArea.clientWidth - 130;
 }
 
-function updateProgress() {
-  let progress = 10;
-
-  if (roseX > 120) progress = 22;
-  if (roseX > 220) progress = 38;
-  if (roseX > 310) progress = 52;
-  if (roseX > 420) progress = 66;
-  if (hasKey) progress = 88;
-  if (stageFinished) progress = 100;
-
-  progressBar.style.width = `${progress}%`;
+function getGateCenterX() {
+  return (gameArea.clientWidth / 2) - 45;
 }
 
-function startWalkAnim() {
-  rose.classList.add("walk");
-}
-function stopWalkAnim() {
-  rose.classList.remove("walk");
-}
-
-function moveRose(dir) {
-  if (stageFinished) return;
-
-  const step = 22;
-
-  startWalkAnim();
-
-  if (dir === "left") {
-    roseX += step;
-  } else if (dir === "right") {
-    roseX -= step;
-  }
-
-  // محدودیت
-  if (roseX < LEFT_LIMIT) roseX = LEFT_LIMIT;
-  if (roseX > 520) roseX = 520;
-
-  setRosePosition();
-  updateProgress();
-  checkKeyPickup();
-  checkGateFinish();
-
-  clearTimeout(window.__walkTimeout);
-  window.__walkTimeout = setTimeout(() => {
-    stopWalkAnim();
-  }, 180);
-}
-
-function jumpRose() {
-  if (stageFinished || isJumping) return;
-  isJumping = true;
-  rose.classList.add("jump");
-
-  setTimeout(() => {
-    rose.classList.remove("jump");
-    isJumping = false;
-    checkKeyPickup(true);
-  }, 520);
-}
-
-function getRect(el) {
-  return el.getBoundingClientRect();
-}
-
-function intersects(a, b) {
-  return !(
-    a.right < b.left ||
-    a.left > b.right ||
-    a.bottom < b.top ||
-    a.top > b.bottom
-  );
-}
-
-function checkKeyPickup(force = false) {
-  if (hasKey) return;
-
-  const roseRect = getRect(rose);
-  const keyRect = getRect(moonKey);
-
-  if (intersects(roseRect, keyRect) || force) {
-    // برای اینکه خیلی سخت نشه، اگر رز به محدوده کلید نزدیک شد بگیر
-    const roseCenter = roseRect.left + roseRect.width / 2;
-    const keyCenter = keyRect.left + keyRect.width / 2;
-    const diff = Math.abs(roseCenter - keyCenter);
-
-    if (diff < 120 || force) {
-      hasKey = true;
-      moonKey.classList.add("collected");
-      keyStatus.textContent = "🗝️ کلید ماه: پیدا شد";
-      gateText.textContent = "دروازه ماه باز شد";
-      moonGate.classList.add("open");
-      stageMessage.textContent = "کلید ماه پیدا شد. حالا رز را تا دروازه ماه ببر 🌙";
-      updateProgress();
-    }
-  }
-}
-
-function checkGateFinish() {
-  if (!hasKey || stageFinished) return;
-
-  const roseRect = getRect(rose);
-  const gateRect = getRect(moonGate);
-
-  if (intersects(roseRect, gateRect)) {
-    finishStage();
-  }
-}
-
-function finishStage() {
-  if (stageFinished) return;
-  stageFinished = true;
-
-  updateProgress();
-  stageMessage.textContent = "دروازه باز شد... رز وارد مرحله‌ی بعدی می‌شود";
-  controls.classList.add("disabled");
-
-  setTimeout(() => {
-    stageComplete.classList.remove("hidden");
-  }, 700);
-}
-
-/* =========================
-   شروع بازی
-========================= */
+// ======================
+// شروع بازی
+// ======================
 startBtn.addEventListener("click", () => {
-  homeScreen.classList.add("hidden");
-  stage1Screen.classList.remove("hidden");
-  stage1Screen.classList.add("active");
+  intro.classList.add("hidden");
 
-  // اسکرول بره روی مرحله
   setTimeout(() => {
-    stage1Screen.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, 60);
-
-  updateProgress();
+    stage1.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, 80);
 });
 
-/* =========================
-   کنترل‌ها
-========================= */
-leftBtn.addEventListener("click", () => moveRose("left"));
-rightBtn.addEventListener("click", () => moveRose("right"));
-jumpBtn.addEventListener("click", jumpRose);
+// ======================
+// آپدیت بازیکن
+// ======================
+function updatePlayer() {
+  player.style.left = playerX + "px";
+  player.style.bottom = (116 + playerY) + "px";
 
-/* =========================
-   نگه‌داشتن دکمه برای حرکت
-========================= */
-let holdInterval = null;
+  // پیشرفت مرحله
+  const maxProgressRange = Math.max(1, maxX() - minX);
+  const progress = ((playerX - minX) / maxProgressRange) * 100;
+  progressFill.style.width = Math.max(0, Math.min(100, progress)) + "%";
 
-function startHold(dir) {
-  if (stageFinished) return;
-  moveRose(dir);
-  holdInterval = setInterval(() => moveRose(dir), 120);
+  checkKeyCollection();
+  checkGateOpen();
 }
 
-function stopHold() {
-  clearInterval(holdInterval);
-  holdInterval = null;
+// ======================
+// گرفتن کلید
+// ======================
+function checkKeyCollection() {
+  if (hasMoonKey) return;
+
+  const keyX = getKeyX();
+
+  // اگر رز به محدوده کلید رسید
+  if (playerX >= keyX - 70) {
+    hasMoonKey = true;
+    moonKey.classList.add("collected");
+    moonKeyStatus.textContent = "🗝️ کلید ماه: پیدا شد";
+    moonKeyStatus.style.color = "#a9ffcf";
+  }
 }
 
-["touchstart", "mousedown"].forEach(evt => {
-  leftBtn.addEventListener(evt, e => {
-    e.preventDefault();
-    startHold("left");
-  }, { passive:false });
+// ======================
+// باز شدن دروازه
+// ======================
+function checkGateOpen() {
+  if (!hasMoonKey) return;
 
-  rightBtn.addEventListener(evt, e => {
-    e.preventDefault();
-    startHold("right");
-  }, { passive:false });
+  const gateX = getGateCenterX();
 
-  jumpBtn.addEventListener(evt, e => {
-    e.preventDefault();
-    jumpRose();
-  }, { passive:false });
+  if (Math.abs(playerX - gateX) < 85) {
+    moonGate.classList.add("open");
+    gateLockedText.textContent = "باز شد ✨";
+    gateLockedText.style.color = "#a9ffcf";
+  }
+}
+
+// ======================
+// حرکت
+// ======================
+function moveRight() {
+  playerX += moveStep;
+  if (playerX > maxX()) playerX = maxX();
+  updatePlayer();
+}
+
+function moveLeft() {
+  playerX -= moveStep;
+  if (playerX < minX) playerX = minX;
+  updatePlayer();
+}
+
+function jump() {
+  if (isJumping) return;
+  isJumping = true;
+  velocityY = jumpPower;
+}
+
+// ======================
+// فیزیک پرش
+// ======================
+function gameLoop() {
+  if (isJumping) {
+    playerY += velocityY;
+    velocityY -= gravity;
+
+    if (playerY <= groundY) {
+      playerY = groundY;
+      velocityY = 0;
+      isJumping = false;
+    }
+
+    updatePlayer();
+  }
+
+  requestAnimationFrame(gameLoop);
+}
+
+// ======================
+// رویداد دکمه‌ها
+// ======================
+moveRightBtn.addEventListener("click", moveRight);
+moveLeftBtn.addEventListener("click", moveLeft);
+jumpBtn.addEventListener("click", jump);
+
+// لمس طولانی روی موبایل
+let rightHold = null;
+let leftHold = null;
+
+function startHoldRight() {
+  if (rightHold) return;
+  moveRight();
+  rightHold = setInterval(moveRight, 90);
+}
+function stopHoldRight() {
+  clearInterval(rightHold);
+  rightHold = null;
+}
+
+function startHoldLeft() {
+  if (leftHold) return;
+  moveLeft();
+  leftHold = setInterval(moveLeft, 90);
+}
+function stopHoldLeft() {
+  clearInterval(leftHold);
+  leftHold = null;
+}
+
+moveRightBtn.addEventListener("touchstart", (e) => {
+  e.preventDefault();
+  startHoldRight();
+}, { passive: false });
+
+moveRightBtn.addEventListener("touchend", stopHoldRight);
+moveRightBtn.addEventListener("touchcancel", stopHoldRight);
+
+moveLeftBtn.addEventListener("touchstart", (e) => {
+  e.preventDefault();
+  startHoldLeft();
+}, { passive: false });
+
+moveLeftBtn.addEventListener("touchend", stopHoldLeft);
+moveLeftBtn.addEventListener("touchcancel", stopHoldLeft);
+
+jumpBtn.addEventListener("touchstart", (e) => {
+  e.preventDefault();
+  jump();
+}, { passive: false });
+
+// کیبورد
+document.addEventListener("keydown", (e) => {
+  if (e.key === "ArrowRight") moveRight();
+  if (e.key === "ArrowLeft") moveLeft();
+  if (e.key === "ArrowUp" || e.key === " ") jump();
 });
 
-["touchend", "touchcancel", "mouseup", "mouseleave"].forEach(evt => {
-  leftBtn.addEventListener(evt, stopHold);
-  rightBtn.addEventListener(evt, stopHold);
-});
-
-/* =========================
-   شروع اولیه
-========================= */
-setRosePosition();
-updateProgress();
+// ======================
+// شروع اولیه
+// ======================
+updatePlayer();
+gameLoop();
