@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Journey to the Secret Lily</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="game-shell">
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- HUD -->
+    <div id="hud" class="hud hidden">
+      <div class="hud-left">
+        <div class="pill">✨ ستاره: <span id="starCount">0</span>/<span id="starTotal">3</span></div>
+        <div class="pill">🗝️ کلید ماه: <span id="hasKey">ندارد</span></div>
+      </div>
+      <div class="hud-right">
+        <div class="pill">مرحله ۱ • مسیر ستاره‌ها</div>
+      </div>
+    </div>
+
+    <!-- Dialogue -->
+    <div id="dialogueBox" class="dialogue hidden">
+      <div class="dialogue-name">لومی</div>
+      <div id="dialogueText" class="dialogue-text"></div>
+    </div>
+
+    <!-- Message / Prompt -->
+    <div id="centerMessage" class="center-message hidden"></div>
+
+    <!-- Mobile Controls -->
+    <div id="mobileControls" class="mobile-controls hidden">
+      <button id="btnLeft" class="ctrl-btn">←</button>
+      <button id="btnJump" class="ctrl-btn">↑</button>
+      <button id="btnRight" class="ctrl-btn">→</button>
+      <button id="btnAction" class="ctrl-btn action">تعامل</button>
+    </div>
+
+    <!-- Menu -->
+    <section id="menuScreen" class="screen menu-screen">
+      <div class="menu-card">
+        <h1>Journey to the Secret Lily</h1>
+        <h2>سفر رز تا لیلیوم پنهان</h2>
+        <p>
+          رز باید از مسیر ستاره‌ها، پل شکسته و رازهای شب عبور کند
+          تا به کلید ماه و دروازه‌ی بعدی برسد...
+        </p>
+
+        <div class="menu-features">
+          <span>🌙 رازآلود</span>
+          <span>🦉 لومی</span>
+          <span>✨ ستاره‌ها</span>
+          <span>🗝️ کلید ماه</span>
+        </div>
+
+        <button id="startBtn" class="main-btn">شروع سفر</button>
+      </div>
+    </section>
+
+    <!-- Stage Complete -->
+    <section id="stageCompleteScreen" class="screen hidden">
+      <div class="menu-card complete-card">
+        <h1>مرحله ۱ کامل شد ✨</h1>
+        <p>
+          رز کلید ماه را پیدا کرد و از مسیر ستاره‌ها عبور کرد.
+          حالا زیرساخت بازی برای مرحله‌های بعدی آماده است.
+        </p>
+        <button id="restartBtn" class="main-btn">شروع دوباره مرحله</button>
+      </div>
+    </section>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>
